@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/natac13/go-crypto-exchange/orderbook"
@@ -14,6 +15,7 @@ func main() {
 
 	e.GET("/book/:market", ex.handleGetBook)
 	e.POST("/order", ex.handlePlaceOrder)
+	e.DELETE("/order/:id", ex.handleCancelOrder)
 	e.Start(":3000")
 
 }
@@ -67,12 +69,21 @@ func (ex *Exchange) handlePlaceOrder(c echo.Context) error {
 	}
 	order := orderbook.NewOrder(placeOrderData.Bid, placeOrderData.Size)
 
-	ob.PlaceLimitOrder(placeOrderData.Price, order)
+	if placeOrderData.Type == LimitOrder {
+		ob.PlaceLimitOrder(placeOrderData.Price, order)
+		return c.JSON(http.StatusOK, map[string]interface{}{"msg": "limit order placed"})
+	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order placed"})
+	if placeOrderData.Type == MarketOrder {
+		matches := ob.PlaceMarketOrder(order)
+		return c.JSON(http.StatusOK, map[string]interface{}{"msg": "market order placed", "matchLength": len(matches)})
+	}
+
+	return nil
 }
 
 type Order struct {
+	ID        int64   `json:"id"`
 	Price     float64 `json:"price"`
 	Size      float64 `json:"size"`
 	Bid       bool    `json:"bid"`
@@ -80,9 +91,11 @@ type Order struct {
 }
 
 type OrderbookResponse struct {
-	Market Market   `json:"market"`
-	Asks   []*Order `json:"asks"`
-	Bids   []*Order `json:"bids"`
+	Market         Market   `json:"market"`
+	Asks           []*Order `json:"asks"`
+	Bids           []*Order `json:"bids"`
+	TotalBidVolume float64  `json:"totalBidVolume"`
+	TotalAskVolume float64  `json:"totalAskVolume"`
 }
 
 func (ex *Exchange) handleGetBook(c echo.Context) error {
@@ -93,33 +106,71 @@ func (ex *Exchange) handleGetBook(c echo.Context) error {
 	}
 
 	orderbookResponse := OrderbookResponse{
-		Market: market,
-		Asks:   []*Order{},
-		Bids:   []*Order{},
+		Market:         market,
+		Asks:           []*Order{},
+		Bids:           []*Order{},
+		TotalBidVolume: ob.BidTotalVolume(),
+		TotalAskVolume: ob.AskTotalVolume(),
 	}
+
 	for _, limit := range ob.Asks() {
-		for _, order := range limit.Orders {
-			o := Order{
+		for _, o := range limit.Orders {
+			order := Order{
+				ID:        o.ID,
 				Price:     limit.Price,
-				Size:      order.Size,
-				Bid:       order.Bid,
-				Timestamp: order.Timestamp,
+				Size:      o.Size,
+				Bid:       o.Bid,
+				Timestamp: o.Timestamp,
 			}
-			orderbookResponse.Asks = append(orderbookResponse.Asks, &o)
+			orderbookResponse.Asks = append(orderbookResponse.Asks, &order)
 		}
 	}
 
 	for _, limit := range ob.Bids() {
-		for _, order := range limit.Orders {
-			o := Order{
+		for _, o := range limit.Orders {
+			order := Order{
+				ID:        o.ID,
 				Price:     limit.Price,
-				Size:      order.Size,
-				Bid:       order.Bid,
-				Timestamp: order.Timestamp,
+				Size:      o.Size,
+				Bid:       o.Bid,
+				Timestamp: o.Timestamp,
 			}
-			orderbookResponse.Bids = append(orderbookResponse.Bids, &o)
+			orderbookResponse.Bids = append(orderbookResponse.Bids, &order)
 		}
 	}
 
 	return c.JSON(http.StatusOK, orderbookResponse)
+}
+
+func (ex *Exchange) handleCancelOrder(c echo.Context) error {
+	idStr := c.Param("id")
+	id, ok := strconv.Atoi(idStr)
+	if ok != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{"msg": "invalid id"})
+	}
+
+	ob := ex.orderbooks[MarketETH]
+	orderCancelled := false
+
+	for _, limit := range ob.Asks() {
+		for _, o := range limit.Orders {
+			if o.ID == int64(id) {
+				ob.CancelOrder(o)
+				orderCancelled = true
+				return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order cancelled", "orderCancelled": orderCancelled})
+			}
+		}
+	}
+
+	for _, limit := range ob.Bids() {
+		for _, o := range limit.Orders {
+			if o.ID == int64(id) {
+				ob.CancelOrder(o)
+				orderCancelled = true
+				return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order cancelled", "orderCancelled": orderCancelled})
+			}
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order cancelled", "orderCancelled": orderCancelled})
 }
