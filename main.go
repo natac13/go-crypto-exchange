@@ -150,27 +150,8 @@ func (ex *Exchange) handleCancelOrder(c echo.Context) error {
 	}
 
 	ob := ex.orderbooks[MarketETH]
-	orderCancelled := false
+	order := ob.Orders[int64(id)]
+	ob.CancelOrder(order)
 
-	for _, limit := range ob.Asks() {
-		for _, o := range limit.Orders {
-			if o.ID == int64(id) {
-				ob.CancelOrder(o)
-				orderCancelled = true
-				return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order cancelled", "orderCancelled": orderCancelled})
-			}
-		}
-	}
-
-	for _, limit := range ob.Bids() {
-		for _, o := range limit.Orders {
-			if o.ID == int64(id) {
-				ob.CancelOrder(o)
-				orderCancelled = true
-				return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order cancelled", "orderCancelled": orderCancelled})
-			}
-		}
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order cancelled", "orderCancelled": orderCancelled})
+	return c.JSON(http.StatusOK, map[string]interface{}{"msg": "order deleted"})
 }
