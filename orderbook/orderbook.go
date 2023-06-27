@@ -45,6 +45,7 @@ func (o *Order) IsFilled() bool {
 	return o.Size == 0.0
 }
 
+// a bucket of orders at a specific price with different volumes / sizes
 type Limit struct {
 	Price       float64
 	Orders      Orders

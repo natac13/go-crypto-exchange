@@ -11,6 +11,7 @@ import (
 
 func main() {
 	e := echo.New()
+	e.HTTPErrorHandler = httpErrorHandler
 	ex := NewExchange()
 
 	e.GET("/book/:market", ex.handleGetBook)
@@ -18,6 +19,14 @@ func main() {
 	e.DELETE("/order/:id", ex.handleCancelOrder)
 	e.Start(":3000")
 
+}
+
+func httpErrorHandler(err error, c echo.Context) {
+	code := http.StatusInternalServerError
+	if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+	}
+	c.JSON(code, err.Error())
 }
 
 type Market string
@@ -55,6 +64,17 @@ type PlaceOrderRequest struct {
 	Type   OrderType `json:"type"` // market or limit
 }
 
+type PlaceLimitOrderResponse struct {
+	OrderID int64  `json:"orderId"`
+	Message string `json:"message"`
+}
+
+type MatchedOrder struct {
+	Price      float64 `json:"price"`
+	SizeFilled float64 `json:"sizeFilled"`
+	ID         int64   `json:"id"`
+}
+
 func (ex *Exchange) handlePlaceOrder(c echo.Context) error {
 	var placeOrderData PlaceOrderRequest
 
@@ -71,12 +91,32 @@ func (ex *Exchange) handlePlaceOrder(c echo.Context) error {
 
 	if placeOrderData.Type == LimitOrder {
 		ob.PlaceLimitOrder(placeOrderData.Price, order)
-		return c.JSON(http.StatusOK, map[string]interface{}{"msg": "limit order placed"})
+		res := PlaceLimitOrderResponse{
+			OrderID: order.ID,
+			Message: "limit order placed",
+		}
+		return c.JSON(http.StatusOK, res)
 	}
 
 	if placeOrderData.Type == MarketOrder {
 		matches := ob.PlaceMarketOrder(order)
-		return c.JSON(http.StatusOK, map[string]interface{}{"msg": "market order placed", "matchLength": len(matches)})
+		matchedOrders := make([]*MatchedOrder, len(matches))
+
+		isBid := order.Bid
+
+		for i, match := range matches {
+			id := match.Bid.ID
+			if isBid {
+				id = match.Ask.ID
+			}
+			matchedOrders[i] = &MatchedOrder{
+				SizeFilled: match.SizeFilled,
+				Price:      match.Price,
+				ID:         id,
+			}
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{"msg": "market order placed", "matches": matchedOrders})
 	}
 
 	return nil
