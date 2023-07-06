@@ -17,9 +17,9 @@ func assert(t *testing.T, actual, expected interface{}) {
 
 func TestLimit(t *testing.T) {
 	l := NewLimit(10_000)
-	buyOrderA := NewOrder(true, 5)
-	buyOrderB := NewOrder(true, 10)
-	buyOrderC := NewOrder(true, 25)
+	buyOrderA := NewOrder(true, 5, 0)
+	buyOrderB := NewOrder(true, 10, 0)
+	buyOrderC := NewOrder(true, 25, 0)
 
 	l.AddOrder(buyOrderA)
 	l.AddOrder(buyOrderB)
@@ -36,8 +36,8 @@ func TestLimit(t *testing.T) {
 func TestPlaceLimitOrder(t *testing.T) {
 	ob := NewOrderbook()
 
-	sellOrderA := NewOrder(false, 10)
-	sellOrderB := NewOrder(false, 5)
+	sellOrderA := NewOrder(false, 10, 0)
+	sellOrderB := NewOrder(false, 5, 0)
 	ob.PlaceLimitOrder(10_000, sellOrderA)
 	ob.PlaceLimitOrder(9_000, sellOrderB)
 
@@ -50,10 +50,10 @@ func TestPlaceLimitOrder(t *testing.T) {
 func TestPlaceMarketOrder(t *testing.T) {
 	ob := NewOrderbook()
 
-	sellOrderA := NewOrder(false, 20)
+	sellOrderA := NewOrder(false, 20, 0)
 	ob.PlaceLimitOrder(10_000, sellOrderA)
 
-	buyOrderA := NewOrder(true, 10)
+	buyOrderA := NewOrder(true, 10, 0)
 	matches := ob.PlaceMarketOrder(buyOrderA)
 
 	assert(t, len(matches), 1)
@@ -71,10 +71,10 @@ func TestPlaceMarketOrder(t *testing.T) {
 func TestPlaceMarketOrderMultiFill(t *testing.T) {
 	ob := NewOrderbook()
 
-	buyOrderA := NewOrder(true, 5)
-	buyOrderB := NewOrder(true, 8)
-	buyOrderC := NewOrder(true, 10)
-	buyOrderD := NewOrder(true, 1)
+	buyOrderA := NewOrder(true, 5, 0)
+	buyOrderB := NewOrder(true, 8, 0)
+	buyOrderC := NewOrder(true, 10, 0)
+	buyOrderD := NewOrder(true, 1, 0)
 
 	ob.PlaceLimitOrder(5_000, buyOrderC)
 	ob.PlaceLimitOrder(5_000, buyOrderD)
@@ -87,7 +87,7 @@ func TestPlaceMarketOrderMultiFill(t *testing.T) {
 	assert(t, ob.BidTotalVolume(), 24.0)
 	assert(t, len(ob.bids), 3)
 
-	sellOrderA := NewOrder(false, 22)
+	sellOrderA := NewOrder(false, 22, 0)
 	matches := ob.PlaceMarketOrder(sellOrderA)
 
 	assert(t, len(matches), 3)
@@ -101,10 +101,10 @@ func TestPlaceMarketOrderMultiFill(t *testing.T) {
 func TestPlaceMarketOrderMultiFillWithReversedSamePriceBid(t *testing.T) {
 	ob := NewOrderbook()
 
-	buyOrderA := NewOrder(true, 5)
-	buyOrderB := NewOrder(true, 8)
-	buyOrderC := NewOrder(true, 10)
-	buyOrderD := NewOrder(true, 1)
+	buyOrderA := NewOrder(true, 5, 0)
+	buyOrderB := NewOrder(true, 8, 0)
+	buyOrderC := NewOrder(true, 10, 0)
+	buyOrderD := NewOrder(true, 1, 0)
 
 	ob.PlaceLimitOrder(5_000, buyOrderD)
 	ob.PlaceLimitOrder(5_000, buyOrderC)
@@ -117,7 +117,7 @@ func TestPlaceMarketOrderMultiFillWithReversedSamePriceBid(t *testing.T) {
 	assert(t, ob.BidTotalVolume(), 24.0)
 	assert(t, len(ob.bids), 3)
 
-	sellOrderA := NewOrder(false, 22)
+	sellOrderA := NewOrder(false, 22, 0)
 	matches := ob.PlaceMarketOrder(sellOrderA)
 
 	assert(t, len(matches), 4)
@@ -132,10 +132,10 @@ func TestPlaceMarketOrderMultiFillWithReversedSamePriceBid(t *testing.T) {
 func TestCancelOrder(t *testing.T) {
 	ob := NewOrderbook()
 
-	buyOrderA := NewOrder(true, 5)
-	buyOrderB := NewOrder(true, 8)
-	buyOrderC := NewOrder(true, 10)
-	buyOrderD := NewOrder(true, 1)
+	buyOrderA := NewOrder(true, 5, 0)
+	buyOrderB := NewOrder(true, 8, 0)
+	buyOrderC := NewOrder(true, 10, 0)
+	buyOrderD := NewOrder(true, 1, 0)
 
 	ob.PlaceLimitOrder(5_000, buyOrderD)
 	ob.PlaceLimitOrder(5_000, buyOrderC)
