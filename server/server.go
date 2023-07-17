@@ -21,6 +21,7 @@ const (
 	LimitOrder  OrderType = "LIMIT"
 
 	// dont ever do this
+	// user 0 is the exchange
 	exchangePrivateKey = "4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
 )
 
@@ -133,9 +134,14 @@ func StartServer() {
 		log.Fatal(err)
 	}
 
-	e.GET("/book/:market", ex.handleGetBook)
 	e.POST("/order", ex.handlePlaceOrder)
 	e.DELETE("/order/:id", ex.handleCancelOrder)
+
+	e.GET("/book/:market", ex.handleGetBook)
+	e.GET("/book/:market/bids", ex.handleGetAllBids)
+	e.GET("/book/:market/asks", ex.handleGetAllAsks)
+	e.GET("/book/:market/best-bid", ex.handleGetBestBid)
+	e.GET("/book/:market/best-ask", ex.handleGetBestAsk)
 
 	e.Start(":3000")
 }
@@ -272,6 +278,68 @@ func (ex *Exchange) handleGetBook(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, orderbookResponse)
+}
+
+type PriceResponse struct {
+	Price float64 `json:"price"`
+}
+
+func (ex *Exchange) handleGetBestBid(c echo.Context) error {
+	market := Market(c.Param("market"))
+	ob := ex.orderbooks[market]
+
+	if len(ob.Bids()) == 0 {
+		return fmt.Errorf("the bids are empty")
+	}
+	bestBidPrice := ob.Bids()[0].Price
+
+	pr := PriceResponse{
+		Price: bestBidPrice,
+	}
+	return c.JSON(http.StatusOK, pr)
+}
+
+func (ex *Exchange) handleGetBestAsk(c echo.Context) error {
+	market := Market(c.Param("market"))
+	ob := ex.orderbooks[market]
+
+	if len(ob.Asks()) == 0 {
+		return fmt.Errorf("the asks are empty")
+	}
+	bestAskPrice := ob.Asks()[0].Price
+
+	pr := PriceResponse{
+		Price: bestAskPrice,
+	}
+	return c.JSON(http.StatusOK, pr)
+}
+
+func (ex *Exchange) handleGetAllBids(c echo.Context) error {
+	market := Market(c.Param("market"))
+	ob := ex.orderbooks[market]
+
+	bids := make([]*PriceResponse, len(ob.Bids()))
+	for i, limit := range ob.Bids() {
+		bids[i] = &PriceResponse{
+			Price: limit.Price,
+		}
+	}
+
+	return c.JSON(http.StatusOK, bids)
+}
+
+func (ex *Exchange) handleGetAllAsks(c echo.Context) error {
+	market := Market(c.Param("market"))
+	ob := ex.orderbooks[market]
+
+	asks := make([]*PriceResponse, len(ob.Asks()))
+	for i, limit := range ob.Asks() {
+		asks[i] = &PriceResponse{
+			Price: limit.Price,
+		}
+	}
+
+	return c.JSON(http.StatusOK, asks)
 }
 
 func (ex *Exchange) handleCancelOrder(c echo.Context) error {

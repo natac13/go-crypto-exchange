@@ -261,6 +261,8 @@ func (ob *Orderbook) clearLimits(bid bool, l *Limit) {
 			}
 		}
 	}
+
+	fmt.Printf("len of asks %+v\n\n", len(ob.asks))
 }
 
 func (ob *Orderbook) CancelOrder(o *Order) {

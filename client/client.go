@@ -105,6 +105,48 @@ func (c *Client) PlaceLimitOrder(p *PlaceLimitOrderParams) (*server.PlaceOrderRe
 	return &placeLimitOrderResponse, nil
 }
 
+func (c *Client) GetBestBid() (float64, error) {
+	e := fmt.Sprintf("%s/book/ETH/best-bid", EndPoint)
+	req, err := http.NewRequest(http.MethodGet, e, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer res.Body.Close()
+
+	priceResponse := &server.PriceResponse{}
+	if err := json.NewDecoder(res.Body).Decode(priceResponse); err != nil {
+		return 0, err
+	}
+
+	return priceResponse.Price, nil
+}
+
+func (c *Client) GetBestAsk() (float64, error) {
+	e := fmt.Sprintf("%s/book/ETH/best-ask", EndPoint)
+	req, err := http.NewRequest(http.MethodGet, e, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer res.Body.Close()
+
+	priceResponse := &server.PriceResponse{}
+	if err := json.NewDecoder(res.Body).Decode(priceResponse); err != nil {
+		return 0, err
+	}
+
+	return priceResponse.Price, nil
+}
+
 func (c *Client) CancelOrder(orderId int64) error {
 	e := fmt.Sprintf("%s/order/%d", EndPoint, orderId)
 
