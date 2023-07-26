@@ -34,6 +34,27 @@ type PlaceMarketOrderParams struct {
 	Size   float64 `json:"size"`
 }
 
+func (c *Client) GetOrders(userId int64) ([]server.Order, error) {
+	e := fmt.Sprintf("%s/orders/%d", EndPoint, userId)
+	req, err := http.NewRequest(http.MethodGet, e, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var orders server.UserOrdersResponse
+	if err := json.NewDecoder(res.Body).Decode(&orders); err != nil {
+		return nil, err
+	}
+
+	return orders.Orders, nil
+}
+
 func (c *Client) PlaceMarketOrder(p *PlaceMarketOrderParams) (*server.PlaceOrderResponse, error) {
 	params := &server.PlaceOrderRequest{
 		UserID: p.UserID,

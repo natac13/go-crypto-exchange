@@ -56,6 +56,15 @@ func marketOrderPlacer(c *client.Client) {
 func makeMarketSimple(c *client.Client) {
 	ticker := time.NewTicker(tick)
 	for {
+		orders, err := c.GetOrders(8)
+		if err != nil {
+			log.Println(err)
+		}
+
+		fmt.Println("---------------------------------")
+		fmt.Printf("order: => %+v\n", orders)
+		fmt.Println("---------------------------------")
+
 		// place the ask
 		// get the best ask and best bid, and calculate the spread
 		bestAsk, err := c.GetBestAsk()
@@ -108,7 +117,7 @@ func makeMarketSimple(c *client.Client) {
 
 func seedMarket(c *client.Client) error {
 	ask := &client.PlaceLimitOrderParams{
-		UserID: 9,
+		UserID: 8,
 		Bid:    false,
 		Price:  10_000,
 		Size:   10,
@@ -147,7 +156,7 @@ func main() {
 
 	go makeMarketSimple(c)
 	time.Sleep(1 * time.Second)
-	go marketOrderPlacer(c)
+	marketOrderPlacer(c)
 
 	// for {
 

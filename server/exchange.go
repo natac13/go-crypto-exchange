@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/ecdsa"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -9,8 +10,10 @@ import (
 )
 
 type Exchange struct {
-	users      map[int64]*User
-	orders     map[int64]*int64
+	users map[int64]*User
+	// map user id to their orders
+	mu         sync.RWMutex
+	Orders     map[int64][]*orderbook.Order
 	orderbooks map[Market]*orderbook.Orderbook
 	PrivateKey *ecdsa.PrivateKey
 	Client     *ethclient.Client
@@ -31,7 +34,7 @@ func NewExchange(privateKey string, client *ethclient.Client) (*Exchange, error)
 		orderbooks: orderbooks,
 		PrivateKey: pk,
 		users:      make(map[int64]*User),
-		orders:     make(map[int64]*int64),
+		Orders:     make(map[int64][]*orderbook.Order),
 		Client:     client,
 	}, nil
 }

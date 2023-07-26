@@ -45,6 +45,7 @@ func (o *Order) String() string {
 }
 
 func (o *Order) IsFilled() bool {
+	fmt.Printf("ISFILLED +++++++>>>>>> order size: %.2f\nbool =====> %t\n\n", o.Size, o.Size == 0.0)
 	return o.Size == 0.0
 }
 
@@ -112,6 +113,8 @@ func (l *Limit) Fill(o *Order) []Match {
 
 		l.TotalVolume -= match.SizeFilled
 
+		fmt.Printf("match: %+v\n", match)
+		fmt.Printf("order: %+v\n", order)
 		// this could cause data corruption
 		if order.IsFilled() {
 			ordersToDelete = append(ordersToDelete, order)
