@@ -173,7 +173,6 @@ func (ex *Exchange) handleGetUserOrders(c echo.Context) error {
 	}
 
 	ex.mu.RLock()
-	defer ex.mu.RUnlock()
 	orderbookOrders := ex.Orders[int64(userId)]
 
 	orderRes := &UserOrdersResponse{
@@ -182,6 +181,12 @@ func (ex *Exchange) handleGetUserOrders(c echo.Context) error {
 	}
 
 	for _, order := range orderbookOrders {
+		// it could be that the order is getting filled even though it is still in the exchange
+		// we must check if the order limit is nil
+		if order.Limit == nil {
+			continue
+		}
+
 		order := Order{
 			UserID:    order.UserID,
 			ID:        order.ID,
@@ -197,6 +202,7 @@ func (ex *Exchange) handleGetUserOrders(c echo.Context) error {
 			orderRes.Asks = append(orderRes.Asks, order)
 		}
 	}
+	ex.mu.RUnlock()
 
 	return c.JSON(http.StatusOK, orderRes)
 }

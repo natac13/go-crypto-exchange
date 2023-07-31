@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+type Trade struct {
+	Price     float64 `json:"price"`
+	Bid       bool    `json:"bid"`
+	Timestamp int64   `json:"timestamp"`
+	Size      float64 `json:"size"`
+}
+
 type Match struct {
 	Ask        *Order
 	Bid        *Order
@@ -45,7 +52,6 @@ func (o *Order) String() string {
 }
 
 func (o *Order) IsFilled() bool {
-	fmt.Printf("ISFILLED +++++++>>>>>> order size: %.2f\nbool =====> %t\n\n", o.Size, o.Size == 0.0)
 	return o.Size == 0.0
 }
 
@@ -108,27 +114,23 @@ func (l *Limit) Fill(o *Order) []Match {
 	)
 
 	for _, order := range l.Orders {
+		if o.IsFilled() {
+			break
+		}
+
 		match := l.fillOrder(order, o)
 		matches = append(matches, match)
-
 		l.TotalVolume -= match.SizeFilled
 
-		fmt.Printf("match: %+v\n", match)
-		fmt.Printf("order: %+v\n", order)
 		// this could cause data corruption
 		if order.IsFilled() {
 			ordersToDelete = append(ordersToDelete, order)
-		}
-
-		if o.IsFilled() {
-			break
 		}
 	}
 
 	for _, o := range ordersToDelete {
 		l.DeleteOrder(o)
 	}
-
 	return matches
 }
 
@@ -174,6 +176,7 @@ type Orderbook struct {
 	BidLimits map[float64]*Limit
 
 	Orders map[int64]*Order
+	Trades []*Trade
 }
 
 func NewOrderbook() *Orderbook {
@@ -183,6 +186,7 @@ func NewOrderbook() *Orderbook {
 		AskLimits: make(map[float64]*Limit),
 		BidLimits: make(map[float64]*Limit),
 		Orders:    make(map[int64]*Order),
+		Trades:    []*Trade{},
 	}
 }
 
@@ -265,7 +269,6 @@ func (ob *Orderbook) clearLimits(bid bool, l *Limit) {
 		}
 	}
 
-	fmt.Printf("len of asks %+v\n\n", len(ob.asks))
 }
 
 func (ob *Orderbook) CancelOrder(o *Order) {
